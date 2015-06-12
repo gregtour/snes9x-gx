@@ -368,11 +368,13 @@ static void UpdateCursorPosition (int chan, int &pos_x, int &pos_y)
 static void decodepad (int chan)
 {
 	int i, offset;
-	double angle;
+	double angle, angle2;
 	static const double THRES = 0.38268343236508984; // cos(67.5)
 
 	s8 pad_x = userInput[chan].pad.stickX;
 	s8 pad_y = userInput[chan].pad.stickY;
+	s8 cpad_x = userInput[chan].pad.substickX;
+	s8 cpad_y = userInput[chan].pad.substickY;
 	u32 jp = userInput[chan].pad.btns_h;
 
 #ifdef HW_RVL
@@ -431,6 +433,29 @@ static void decodepad (int chan)
 
 	/*** Fix offset to pad ***/
 	offset = ((chan + 1) << 4);
+	
+    /* Map C-Stick positions to buttons */
+    u8 fastButtons[MAXJP];
+    for (i = 0; i < MAXJP; i++)
+        fastButtons[i] = 0;
+        
+    /* Check the threshold */ 
+    if (GCSettings.CStick)
+    {
+     if (cpad_x * cpad_x + cpad_y * cpad_y > PADCAL * PADCAL)
+	 {
+		angle2 = atan2(cpad_y, cpad_x);
+ 
+		if(cos(angle2) > THRES) 
+			fastButtons[0] = 1;
+		else if(cos(angle2) < -THRES) 
+			fastButtons[3] = 1;
+		if(sin(angle2) > THRES) 
+			fastButtons[2] = 1;
+		else if(sin(angle2) < -THRES) 
+			fastButtons[1] = 1;
+   	  }
+    }
 
 	/*** Report pressed buttons (gamepads) ***/
 	for (i = 0; i < MAXJP; i++)
@@ -441,6 +466,7 @@ static void decodepad (int chan)
 		|| ( (exp_type == WPAD_EXP_CLASSIC) && (wp & btnmap[CTRL_PAD][CTRLR_CLASSIC][i]) )	// classic controller
 		|| ( (exp_type == WPAD_EXP_NUNCHUK) && (wp & btnmap[CTRL_PAD][CTRLR_NUNCHUK][i]) )	// nunchuk + wiimote
 #endif
+        || fastButtons[i]
 		)
 			S9xReportButton (offset + i, true);
 		else
@@ -542,8 +568,21 @@ bool MenuRequested()
 {
 	for(int i=0; i<4; i++)
 	{
+     int substick = 0;
+     if (GCSettings.CStick)
+     {
+        if ( userInput[i].pad.btns_h & PAD_TRIGGER_Z )
+        {
+           substick = 1;
+        } 
+     } else {
+          if (userInput[i].pad.substickX < -70)
+          {
+           substick = 1;
+          }
+     }
 		if (
-			(userInput[i].pad.substickX < -70) ||
+			(substick == 1) ||
 			(userInput[i].pad.btns_h & PAD_TRIGGER_L &&
 			userInput[i].pad.btns_h & PAD_TRIGGER_R &&
 			userInput[i].pad.btns_h & PAD_BUTTON_X &&
@@ -572,7 +611,7 @@ void ReportButtons ()
 	UpdatePads();
 
 	Settings.TurboMode = (
-		userInput[0].pad.substickX > 70 ||
+		(GCSettings.CStick == 0 && userInput[0].pad.substickX > 70) ||
 		userInput[0].WPAD_StickX(1) > 70
 	);	// RIGHT on c-stick and on classic controller right joystick
 

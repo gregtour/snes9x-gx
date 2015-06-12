@@ -111,6 +111,7 @@ struct SGCSettings{
 	int		SFXVolume;
 	int		Rumble;
 	int 	language;
+	int     CStick; // 0 - normal, 1 - C-Stick button mappings
 };
 
 void ExitApp();

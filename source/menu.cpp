@@ -3534,6 +3534,8 @@ static int MenuSettingsMenu()
 	sprintf(options.name[i++], "Sound Effects Volume");
 	sprintf(options.name[i++], "Rumble");
 	sprintf(options.name[i++], "Language");
+	
+	sprintf(options.name[i++], "C-Stick Buttons");
 	options.length = i;
 
 	for(i=0; i < options.length; i++)
@@ -3618,6 +3620,9 @@ static int MenuSettingsMenu()
 					GCSettings.language = LANG_ENGLISH;
 	
 				break;
+	        case 6:
+                 GCSettings.CStick ^= 1;
+                 break;
 		}
 
 		if(ret >= 0 || firstRun)
@@ -3684,6 +3689,11 @@ static int MenuSettingsMenu()
 				case LANG_CATALAN:		sprintf(options.value[5], "Catalan"); break;
 				case LANG_TURKISH:		sprintf(options.value[5], "Turkish"); break;
 			}
+			
+			if (GCSettings.CStick == 0)
+				sprintf (options.value[6], "Off");
+			else if (GCSettings.CStick)
+				sprintf (options.value[6], "On");
 			
 			optionBrowser.TriggerUpdate();
 		}
